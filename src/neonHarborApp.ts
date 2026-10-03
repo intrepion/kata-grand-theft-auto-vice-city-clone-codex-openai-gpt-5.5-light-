@@ -2,8 +2,12 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import {
   createInitialState,
+  activeVehicle,
+  claimNearestVehicle,
+  exitVehicle,
   orbitCamera,
   updateOnFootPlayer,
+  updateVehicleDriving,
   type InputState,
   type NeonHarborState
 } from "./gameState";
@@ -28,6 +32,7 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
       <div class="brand">Neon Harbor</div>
       <div class="objective" data-testid="objective">Scaffold Slice: boot Vesper Key</div>
       <div class="player-readout" data-testid="player-readout">On foot</div>
+      <div class="vehicle-readout" data-testid="vehicle-readout">Sunray parked</div>
       <div class="heat" aria-label="Heat Bar">
         <span></span><span></span><span></span>
       </div>
@@ -89,7 +94,24 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
   );
   scene.add(player);
 
+  const vehicleMesh = new THREE.Group();
+  const carBody = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 0.45, 2),
+    new THREE.MeshStandardMaterial({ color: 0xffd15c, roughness: 0.42 })
+  );
+  const carCabin = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.42, 0.8),
+    new THREE.MeshStandardMaterial({ color: 0x66d9ff, roughness: 0.35 })
+  );
+  carCabin.position.z = -0.18;
+  carCabin.position.y = 0.38;
+  vehicleMesh.add(carBody, carCabin);
+  scene.add(vehicleMesh);
+
   const readout = shell.querySelector<HTMLElement>("[data-testid='player-readout']");
+  const vehicleReadout = shell.querySelector<HTMLElement>(
+    "[data-testid='vehicle-readout']"
+  );
   const objective = shell.querySelector<HTMLElement>("[data-testid='objective']");
   let lastTime = performance.now();
   let disposed = false;
@@ -112,26 +134,45 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
       state.player.position.y,
       state.player.position.z
     );
+    const vehicle = state.vehicles[0];
+    vehicleMesh.position.set(vehicle.position.x, vehicle.position.y, vehicle.position.z);
+    vehicleMesh.rotation.y = vehicle.heading;
+    player.visible = !state.player.inVehicleId;
     const cameraDistance = 8;
     const cameraHeight = 5;
+    const cameraYaw =
+      state.camera.mode === "chase" ? state.camera.yaw + Math.PI : state.camera.yaw;
     camera.position.set(
-      state.player.position.x + Math.sin(state.camera.yaw) * cameraDistance,
+      state.player.position.x + Math.sin(cameraYaw) * cameraDistance,
       state.player.position.y + cameraHeight,
-      state.player.position.z + Math.cos(state.camera.yaw) * cameraDistance
+      state.player.position.z + Math.cos(cameraYaw) * cameraDistance
     );
-    camera.lookAt(player.position);
+    camera.lookAt(state.player.position.x, state.player.position.y, state.player.position.z);
     shell.dataset.playerX = state.player.position.x.toFixed(2);
     shell.dataset.playerZ = state.player.position.z.toFixed(2);
     shell.dataset.cameraMode = state.camera.mode;
+    shell.dataset.vehicle = state.player.inVehicleId ?? "none";
+    shell.dataset.vehicleSpeed = Math.abs(vehicle.speed).toFixed(2);
+    shell.dataset.vehicleDamage = vehicle.damage.toFixed(0);
     if (readout) {
-      readout.textContent = state.player.sprinting
-        ? "On foot - sprinting"
-        : state.player.speed > 0
-          ? "On foot - moving"
-          : "On foot";
+      readout.textContent = state.player.inVehicleId
+        ? "Driving Sunray"
+        : state.player.sprinting
+          ? "On foot - sprinting"
+          : state.player.speed > 0
+            ? "On foot - moving"
+            : "On foot";
+    }
+    if (vehicleReadout) {
+      const active = activeVehicle(state);
+      vehicleReadout.textContent = active
+        ? `Sunray ${Math.round(Math.abs(active.speed))} mph / damage ${Math.round(active.damage)}`
+        : "E enter Sunray";
     }
     if (objective) {
-      objective.textContent = "Walking Slice: reach the hotel marker";
+      objective.textContent = state.player.inVehicleId
+        ? "Driving Slice: circle Vesper Key"
+        : "Walking Slice: reach the hotel marker";
     }
   };
 
@@ -141,6 +182,8 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     if (event.code === "KeyA" || event.code === "ArrowLeft") input.left = pressed;
     if (event.code === "KeyD" || event.code === "ArrowRight") input.right = pressed;
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") input.sprint = pressed;
+    if (pressed && event.code === "KeyE") state = claimNearestVehicle(state);
+    if (pressed && event.code === "KeyQ") state = exitVehicle(state);
   };
 
   const keyDown = (event: KeyboardEvent) => setKey(event, true);
@@ -158,7 +201,9 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     const now = performance.now();
     const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
-    state = updateOnFootPlayer(state, input, deltaSeconds);
+    state = state.player.inVehicleId
+      ? updateVehicleDriving(state, input, deltaSeconds)
+      : updateOnFootPlayer(state, input, deltaSeconds);
     syncScene();
     marker.rotation.y += 0.01;
     renderer?.render(scene, camera);

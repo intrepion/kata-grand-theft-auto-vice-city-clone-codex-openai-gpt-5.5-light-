@@ -38,3 +38,22 @@ test("walks and sprints through the on-foot control path", async ({ page }) => {
   await page.keyboard.up("w");
   await page.keyboard.up("Shift");
 });
+
+test("claims, drives, and exits the Sunray vehicle", async ({ page }) => {
+  await page.goto("/");
+  const shell = page.locator(".game-shell");
+
+  await page.keyboard.press("e");
+  await expect(shell).toHaveAttribute("data-camera-mode", "chase");
+  await expect(page.getByTestId("player-readout")).toContainText("Driving Sunray");
+
+  await page.keyboard.down("w");
+  await page.waitForTimeout(300);
+  await page.keyboard.up("w");
+  const speed = Number(await shell.getAttribute("data-vehicle-speed"));
+  expect(speed).toBeGreaterThan(0);
+
+  await page.keyboard.press("q");
+  await expect(shell).toHaveAttribute("data-camera-mode", "orbit");
+  await expect(page.getByTestId("player-readout")).toContainText("On foot");
+});
