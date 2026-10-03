@@ -59,3 +59,23 @@ _Avoid_: Game over, respawn, restart
 **Evidence Route**:
 The repeatable proof path used to verify a playable slice: load the game, walk, enter a vehicle, drive, start the mission, trigger Heat, complete delivery, return to the Safehouse, and confirm the browser console is clean.
 _Avoid_: Smoke test, demo path
+
+**Vertical Slice**:
+A small, independently verified increment that adds one real gameplay capability through the browser rather than only adding isolated code or assets.
+_Avoid_: Phase, milestone, task batch
+
+**Neon Noir**:
+The visual identity for the Homage: low-poly pastel architecture, palm silhouettes, wet roads, bright signage, and dusk or night lighting focused on readability over realism.
+_Avoid_: Realistic Miami, retro skin, vaporwave
+
+**Pursuit**:
+A Heat response where nearby patrol vehicles chase the player using proximity and line of sight until the player escapes by distance or time out of sight.
+_Avoid_: Combat encounter, police battle
+
+**Direct Launch**:
+The packaged browser experience that can run from a double-clicked local file URL as well as from the development server.
+_Avoid_: Static export, offline mode
+
+**Slice Evidence**:
+The checks required before a Vertical Slice is accepted: automated checks, a browser interaction test for the capability introduced, and a pushed commit.
+_Avoid_: Done, tested, validated
