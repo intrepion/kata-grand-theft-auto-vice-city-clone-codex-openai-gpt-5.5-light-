@@ -79,3 +79,23 @@ _Avoid_: Static export, offline mode
 **Slice Evidence**:
 The checks required before a Vertical Slice is accepted: automated checks, a browser interaction test for the capability introduced, and a pushed commit.
 _Avoid_: Done, tested, validated
+
+**Neon Harbor**:
+The original game identity for this Homage, used internally and in player-facing UI instead of referring to the project as a Vice City clone.
+_Avoid_: Vice City clone, GTA clone
+
+**Vesper Key**:
+The first Neon District in Neon Harbor, containing the initial Safehouse, Delivery Run, roads, landmarks, traffic, pedestrians, and police Pursuit space.
+_Avoid_: Vice City, Miami, first map
+
+**Safehouse Upgrade**:
+The first visible progression reward after completing the Delivery Run, represented by a marker at the Safehouse and a second parked vehicle spawn.
+_Avoid_: Money, economy, unlock
+
+**Compass Strip**:
+A compact navigation HUD element that points toward objectives and landmarks without committing MVP 1 to a full minimap.
+_Avoid_: Minimap, GPS, radar
+
+**Mission Step**:
+A data-defined objective unit interpreted by the mission runner, such as marker, pickup, delivery, escape, or return.
+_Avoid_: Script command, quest node
