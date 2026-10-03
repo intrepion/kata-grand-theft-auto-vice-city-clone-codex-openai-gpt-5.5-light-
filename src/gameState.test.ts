@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   activeVehicle,
   claimNearestVehicle,
+  collectPackage,
+  completeDeliveryRun,
   createInitialState,
+  deliverPackage,
   exitVehicle,
   orbitCamera,
   populateCityLife,
+  softResetMission,
+  startDeliveryRun,
   updateCityLife,
   updateOnFootPlayer,
+  updatePursuitClear,
   updateVehicleDriving
 } from "./gameState";
 
@@ -45,6 +51,50 @@ describe("on-foot player control", () => {
     const next = orbitCamera(state, 25);
 
     expect(next.camera.yaw).toBeLessThan(state.camera.yaw);
+  });
+});
+
+describe("Delivery Run mission and Heat", () => {
+  it("completes the Delivery Run and unlocks the safehouse reward", () => {
+    let state = startDeliveryRun(createInitialState());
+    state = claimNearestVehicle(state);
+    state = collectPackage(state);
+    state = deliverPackage(state);
+    state = updatePursuitClear(state, 8);
+    state = completeDeliveryRun(state);
+
+    expect(state.mission.stage).toBe("complete");
+    expect(state.heat.level).toBe(0);
+    expect(state.progression.safehouseUpgrade).toBe(true);
+    expect(state.vehicles.some((vehicle) => vehicle.id === "bayside")).toBe(true);
+  });
+
+  it("keeps pursuit active until line of sight, distance, and timer are satisfied", () => {
+    let state = startDeliveryRun(createInitialState());
+    state = claimNearestVehicle(state);
+    state = collectPackage(state);
+    state = updatePursuitClear(state, 8);
+
+    expect(state.heat.pursuing).toBe(true);
+
+    state = deliverPackage(state);
+    state = updatePursuitClear(state, 7.5);
+    expect(state.heat.pursuing).toBe(true);
+
+    state = updatePursuitClear(state, 0.5);
+    expect(state.heat.pursuing).toBe(false);
+  });
+
+  it("soft resets mission progress without ending the sandbox", () => {
+    let state = startDeliveryRun(createInitialState());
+    state = claimNearestVehicle(state);
+    state = collectPackage(state);
+
+    state = softResetMission(state);
+
+    expect(state.mission.stage).toBe("failed");
+    expect(state.player.inVehicleId).toBeNull();
+    expect(state.heat.level).toBe(0);
   });
 });
 

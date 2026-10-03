@@ -38,6 +38,35 @@ export interface NeonHarborState {
   camera: CameraState;
   vehicles: VehicleState[];
   pedestrians: PedestrianState[];
+  mission: MissionState;
+  heat: HeatState;
+  progression: ProgressionState;
+}
+
+export type MissionStage =
+  | "idle"
+  | "started"
+  | "package-collected"
+  | "delivered"
+  | "complete"
+  | "failed";
+
+export interface MissionState {
+  stage: MissionStage;
+  objective: string;
+}
+
+export interface HeatState {
+  level: 0 | 1 | 2 | 3;
+  pursuing: boolean;
+  clearTimer: number;
+  distanceFromPolice: number;
+  hasLineOfSight: boolean;
+}
+
+export interface ProgressionState {
+  safehouseUpgrade: boolean;
+  secondVehicleSpawn: boolean;
 }
 
 export interface InputState {
@@ -71,7 +100,22 @@ export function createInitialState(): NeonHarborState {
         kind: "player"
       }
     ],
-    pedestrians: createPedestrians()
+    pedestrians: createPedestrians(),
+    mission: {
+      stage: "idle",
+      objective: "Start the Delivery Run at the safehouse"
+    },
+    heat: {
+      level: 0,
+      pursuing: false,
+      clearTimer: 0,
+      distanceFromPolice: 0,
+      hasLineOfSight: false
+    },
+    progression: {
+      safehouseUpgrade: false,
+      secondVehicleSpawn: false
+    }
   };
 }
 
@@ -241,6 +285,119 @@ export function updateVehicleDriving(
   next.camera.mode = "chase";
   next.camera.yaw = vehicle.heading;
 
+  return next;
+}
+
+export function startDeliveryRun(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  if (next.mission.stage === "idle" || next.mission.stage === "failed") {
+    next.mission = {
+      stage: "started",
+      objective: "Claim a vehicle and collect the hotel alley package"
+    };
+  }
+  return next;
+}
+
+export function collectPackage(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  if (next.mission.stage !== "started" || !next.player.inVehicleId) {
+    return next;
+  }
+  next.mission = {
+    stage: "package-collected",
+    objective: "Deliver the package to the docks while under Heat"
+  };
+  next.heat.level = 2;
+  next.heat.pursuing = true;
+  next.heat.hasLineOfSight = true;
+  next.heat.distanceFromPolice = 18;
+  return next;
+}
+
+export function deliverPackage(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  if (next.mission.stage !== "package-collected") {
+    return next;
+  }
+  next.mission = {
+    stage: "delivered",
+    objective: "Break police line of sight and return to the safehouse"
+  };
+  next.heat.hasLineOfSight = false;
+  next.heat.distanceFromPolice = 60;
+  return next;
+}
+
+export function updatePursuitClear(
+  state: NeonHarborState,
+  deltaSeconds: number
+): NeonHarborState {
+  const next = structuredClone(state);
+  if (!next.heat.pursuing) {
+    return next;
+  }
+  if (!next.heat.hasLineOfSight && next.heat.distanceFromPolice >= 50) {
+    next.heat.clearTimer += deltaSeconds;
+  } else {
+    next.heat.clearTimer = 0;
+  }
+  if (next.heat.clearTimer >= 8) {
+    next.heat.pursuing = false;
+    next.heat.level = 0;
+    next.heat.clearTimer = 8;
+    if (next.mission.stage === "delivered") {
+      next.mission.objective = "Return to the safehouse";
+    }
+  }
+  return next;
+}
+
+export function completeDeliveryRun(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  if (next.mission.stage !== "delivered" || next.heat.pursuing) {
+    return next;
+  }
+  next.mission = {
+    stage: "complete",
+    objective: "Delivery Run complete - Safehouse Upgrade available"
+  };
+  next.progression.safehouseUpgrade = true;
+  next.progression.secondVehicleSpawn = true;
+  if (!next.vehicles.some((vehicle) => vehicle.id === "bayside")) {
+    next.vehicles.push({
+      id: "bayside",
+      position: { x: 1.2, y: 0.35, z: -1.2 },
+      heading: -Math.PI * 0.2,
+      speed: 0,
+      damage: 0,
+      occupied: false,
+      kind: "player"
+    });
+  }
+  return next;
+}
+
+export function softResetMission(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  next.mission = {
+    stage: "failed",
+    objective: "Mission failed - return to the safehouse to retry"
+  };
+  next.heat = {
+    level: 0,
+    pursuing: false,
+    clearTimer: 0,
+    distanceFromPolice: 0,
+    hasLineOfSight: false
+  };
+  next.player.inVehicleId = null;
+  next.player.position = { x: 0, y: 0.55, z: 0 };
+  for (const vehicle of next.vehicles) {
+    vehicle.occupied = false;
+    vehicle.speed = 0;
+  }
+  next.camera.mode = "orbit";
   return next;
 }
 

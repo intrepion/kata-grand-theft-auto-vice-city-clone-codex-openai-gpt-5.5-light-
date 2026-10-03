@@ -4,11 +4,17 @@ import {
   createInitialState,
   activeVehicle,
   claimNearestVehicle,
+  collectPackage,
+  completeDeliveryRun,
+  deliverPackage,
   exitVehicle,
   orbitCamera,
   populateCityLife,
+  softResetMission,
+  startDeliveryRun,
   updateOnFootPlayer,
   updateCityLife,
+  updatePursuitClear,
   updateVehicleDriving,
   type InputState,
   type NeonHarborState
@@ -36,7 +42,7 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
       <div class="player-readout" data-testid="player-readout">On foot</div>
       <div class="vehicle-readout" data-testid="vehicle-readout">Sunray parked</div>
       <div class="city-readout" data-testid="city-readout">City Life loading</div>
-      <div class="heat" aria-label="Heat Bar">
+      <div class="heat" aria-label="Heat Bar" data-testid="heat-bar">
         <span></span><span></span><span></span>
       </div>
     </div>
@@ -97,35 +103,42 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
   );
   scene.add(player);
 
-  const vehicleMesh = new THREE.Group();
-  const carBody = new THREE.Mesh(
-    new THREE.BoxGeometry(1.2, 0.45, 2),
-    new THREE.MeshStandardMaterial({ color: 0xffd15c, roughness: 0.42 })
-  );
-  const carCabin = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 0.42, 0.8),
-    new THREE.MeshStandardMaterial({ color: 0x66d9ff, roughness: 0.35 })
-  );
-  carCabin.position.z = -0.18;
-  carCabin.position.y = 0.38;
-  vehicleMesh.add(carBody, carCabin);
-  scene.add(vehicleMesh);
-
+  const playerVehicleMeshes = new Map<string, THREE.Group>();
   const trafficMeshes = new Map<string, THREE.Group>();
   const pedestrianMeshes = new Map<string, THREE.Mesh>();
 
-  for (const vehicle of state.vehicles.filter((candidate) => candidate.kind === "traffic")) {
-    const traffic = new THREE.Group();
+  const createCarMesh = (bodyColor: number, roofColor: number) => {
+    const group = new THREE.Group();
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 0.38, 1.7),
-      new THREE.MeshStandardMaterial({ color: 0x8ad8ff, roughness: 0.5 })
+      new THREE.BoxGeometry(1.2, 0.45, 2),
+      new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.42 })
     );
     const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(0.62, 0.32, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0xf476ff, roughness: 0.42 })
+      new THREE.BoxGeometry(0.8, 0.42, 0.8),
+      new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.35 })
     );
-    roof.position.y = 0.33;
-    traffic.add(body, roof);
+    roof.position.z = -0.18;
+    roof.position.y = 0.38;
+    group.add(body, roof);
+    return group;
+  };
+
+  const ensurePlayerVehicleMesh = (vehicleId: string) => {
+    let mesh = playerVehicleMeshes.get(vehicleId);
+    if (!mesh) {
+      mesh = createCarMesh(vehicleId === "sunray" ? 0xffd15c : 0x72ff8a, 0x66d9ff);
+      playerVehicleMeshes.set(vehicleId, mesh);
+      scene.add(mesh);
+    }
+    return mesh;
+  };
+
+  for (const vehicle of state.vehicles.filter((candidate) => candidate.kind === "player")) {
+    ensurePlayerVehicleMesh(vehicle.id);
+  }
+
+  for (const vehicle of state.vehicles.filter((candidate) => candidate.kind === "traffic")) {
+    const traffic = createCarMesh(0x8ad8ff, 0xf476ff);
     trafficMeshes.set(vehicle.id, traffic);
     scene.add(traffic);
   }
@@ -193,9 +206,15 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
       state.player.position.y,
       state.player.position.z
     );
-    const vehicle = state.vehicles[0];
-    vehicleMesh.position.set(vehicle.position.x, vehicle.position.y, vehicle.position.z);
-    vehicleMesh.rotation.y = vehicle.heading;
+    const primaryVehicle = state.vehicles.find((candidate) => candidate.id === "sunray");
+    if (!primaryVehicle) {
+      throw new Error("Sunray vehicle missing from Neon Harbor state.");
+    }
+    for (const vehicle of state.vehicles.filter((candidate) => candidate.kind === "player")) {
+      const mesh = ensurePlayerVehicleMesh(vehicle.id);
+      mesh.position.set(vehicle.position.x, vehicle.position.y, vehicle.position.z);
+      mesh.rotation.y = vehicle.heading;
+    }
     for (const traffic of state.vehicles.filter((candidate) => candidate.kind === "traffic")) {
       const mesh = trafficMeshes.get(traffic.id);
       if (mesh) {
@@ -228,13 +247,20 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     shell.dataset.playerZ = state.player.position.z.toFixed(2);
     shell.dataset.cameraMode = state.camera.mode;
     shell.dataset.vehicle = state.player.inVehicleId ?? "none";
-    shell.dataset.vehicleSpeed = Math.abs(vehicle.speed).toFixed(2);
-    shell.dataset.vehicleDamage = vehicle.damage.toFixed(0);
+    shell.dataset.vehicleSpeed = Math.abs(primaryVehicle.speed).toFixed(2);
+    shell.dataset.vehicleDamage = primaryVehicle.damage.toFixed(0);
+    shell.dataset.missionStage = state.mission.stage;
+    shell.dataset.heatLevel = String(state.heat.level);
+    shell.dataset.pursuit = state.heat.pursuing ? "active" : "clear";
+    shell.dataset.safehouseUpgrade = state.progression.safehouseUpgrade ? "true" : "false";
     const trafficCount = state.vehicles.filter(
       (candidate) => candidate.kind === "traffic"
     ).length;
     shell.dataset.trafficCount = String(trafficCount);
     shell.dataset.pedestrianCount = String(state.pedestrians.length);
+    shell.dataset.playerVehicleCount = String(
+      state.vehicles.filter((candidate) => candidate.kind === "player").length
+    );
     if (readout) {
       readout.textContent = state.player.inVehicleId
         ? "Driving Sunray"
@@ -254,10 +280,12 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
       cityReadout.textContent = `${trafficCount} traffic / ${state.pedestrians.length} pedestrians`;
     }
     if (objective) {
-      objective.textContent = state.player.inVehicleId
-        ? "Driving Slice: circle Vesper Key"
-        : "Walking Slice: reach the hotel marker";
+      objective.textContent = state.mission.objective;
     }
+    const heatSegments = shell.querySelectorAll<HTMLElement>(".heat span");
+    heatSegments.forEach((segment, index) => {
+      segment.dataset.active = index < state.heat.level ? "true" : "false";
+    });
   };
 
   const setKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -268,6 +296,12 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") input.sprint = pressed;
     if (pressed && event.code === "KeyE") state = claimNearestVehicle(state);
     if (pressed && event.code === "KeyQ") state = exitVehicle(state);
+    if (pressed && event.code === "KeyM") state = startDeliveryRun(state);
+    if (pressed && event.code === "KeyP") state = collectPackage(state);
+    if (pressed && event.code === "KeyO") state = deliverPackage(state);
+    if (pressed && event.code === "KeyH") state = updatePursuitClear(state, 8);
+    if (pressed && event.code === "KeyR") state = completeDeliveryRun(state);
+    if (pressed && event.code === "KeyF") state = softResetMission(state);
   };
 
   const keyDown = (event: KeyboardEvent) => setKey(event, true);
@@ -286,6 +320,7 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
     state = updateCityLife(state, deltaSeconds);
+    state = updatePursuitClear(state, deltaSeconds);
     state = state.player.inVehicleId
       ? updateVehicleDriving(state, input, deltaSeconds)
       : updateOnFootPlayer(state, input, deltaSeconds);

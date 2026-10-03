@@ -97,6 +97,11 @@ body {
   background: rgba(255, 255, 255, 0.24);
 }
 
+.heat span[data-active="true"] {
+  background: #ff5d73;
+  box-shadow: 0 0 12px rgba(255, 93, 115, 0.75);
+}
+
 .boot-card {
   position: absolute;
   right: 16px;
