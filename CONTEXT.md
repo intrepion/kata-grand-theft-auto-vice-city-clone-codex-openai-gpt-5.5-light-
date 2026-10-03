@@ -99,3 +99,27 @@ _Avoid_: Minimap, GPS, radar
 **Mission Step**:
 A data-defined objective unit interpreted by the mission runner, such as marker, pickup, delivery, escape, or return.
 _Avoid_: Script command, quest node
+
+**Scaffold Slice**:
+The first Vertical Slice, accepted only when the Vite, TypeScript, Three.js, and Rapier project boots, tests run, the browser scene is visible, Direct Launch packaging works, and the console is clean.
+_Avoid_: Setup, boilerplate, project init
+
+**Hybrid Orbit-Follow Camera**:
+The camera behavior that allows mouse orbit while on foot, switches to a chase view while driving, and supports quick recentering.
+_Avoid_: Free camera, fixed camera, chase-only camera
+
+**Vehicle Damage**:
+Light degradation from collisions that can reduce vehicle speed and show smoke without destroying the vehicle in MVP 1.
+_Avoid_: Destruction, health, damage model
+
+**Heat Bar**:
+A three-segment HUD representation of Heat, used instead of source-like star language.
+_Avoid_: Wanted stars, alert meter
+
+**Pursuit Clear**:
+The rule that ends Pursuit after eight seconds with no police line of sight and at least fifty meters from the closest patrol car.
+_Avoid_: Escape, cooldown, de-aggro
+
+**Direct File Build**:
+The generated Direct Launch artifact under `dist-file/`, containing a local `index.html` and relative bundled JavaScript, CSS, and assets.
+_Avoid_: Production build, dev build, export
