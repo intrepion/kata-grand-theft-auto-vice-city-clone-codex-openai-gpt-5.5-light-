@@ -35,3 +35,27 @@ _Avoid_: Carjacking, theft mechanic, pickup
 **City Life**:
 The ambient systems that make the Neon District feel inhabited, including traffic, pedestrians, reactive police, radio mood, signage, and landmark memory.
 _Avoid_: Background decoration, ambience
+
+**Arcade Handling**:
+Vehicle motion that favors immediate steering, readable sliding, survivable collisions, and quick recovery over simulation accuracy.
+_Avoid_: Sim handling, realistic driving model
+
+**Physical Consequence**:
+A visible gameplay response to movement and driving choices, such as collision, curb impact, loss of speed, pursuit pressure, or route disruption.
+_Avoid_: Realism, physics detail
+
+**Player Control Contract**:
+The minimum feel promise for controlling the character and vehicles: third-person keyboard and mouse movement, camera orbit, sprinting, entering and exiting vehicles, and responsive driving.
+_Avoid_: Controls, input scheme
+
+**Delivery Run**:
+The first Mission Slice shape: leave the Safehouse, claim a vehicle, collect a package from a hotel alley, draw Heat, deliver to the docks, escape police pressure, and return safe.
+_Avoid_: Tutorial mission, fetch quest
+
+**Soft Reset**:
+A failure response that returns the player to the Safehouse and clears current mission progress without ending the broader sandbox session.
+_Avoid_: Game over, respawn, restart
+
+**Evidence Route**:
+The repeatable proof path used to verify a playable slice: load the game, walk, enter a vehicle, drive, start the mission, trigger Heat, complete delivery, return to the Safehouse, and confirm the browser console is clean.
+_Avoid_: Smoke test, demo path
