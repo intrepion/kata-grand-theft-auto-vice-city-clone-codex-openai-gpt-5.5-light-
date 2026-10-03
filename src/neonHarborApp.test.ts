@@ -8,7 +8,7 @@ describe("Neon Harbor scaffold", () => {
     const app = createNeonHarborApp(root);
 
     expect(root.querySelector("[data-testid='objective']")?.textContent).toContain(
-      "Scaffold Slice"
+      "Walking Slice"
     );
     expect(root.querySelector("[data-testid='game-canvas']")).toBeInstanceOf(
       HTMLCanvasElement

@@ -1,17 +1,33 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
+import {
+  createInitialState,
+  orbitCamera,
+  updateOnFootPlayer,
+  type InputState,
+  type NeonHarborState
+} from "./gameState";
 
 export interface NeonHarborApp {
   dispose: () => void;
 }
 
 export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
+  let state: NeonHarborState = createInitialState();
+  const input: InputState = {
+    backward: false,
+    forward: false,
+    left: false,
+    right: false,
+    sprint: false
+  };
   const shell = document.createElement("main");
   shell.className = "game-shell";
   shell.innerHTML = `
     <div class="hud" aria-label="Neon Harbor HUD">
       <div class="brand">Neon Harbor</div>
       <div class="objective" data-testid="objective">Scaffold Slice: boot Vesper Key</div>
+      <div class="player-readout" data-testid="player-readout">On foot</div>
       <div class="heat" aria-label="Heat Bar">
         <span></span><span></span><span></span>
       </div>
@@ -62,6 +78,20 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
   marker.position.set(0, 1.2, 0);
   scene.add(marker);
 
+  const player = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.28, 0.7, 4, 8),
+    new THREE.MeshStandardMaterial({ color: 0x43f2d3, roughness: 0.5 })
+  );
+  player.position.set(
+    state.player.position.x,
+    state.player.position.y,
+    state.player.position.z
+  );
+  scene.add(player);
+
+  const readout = shell.querySelector<HTMLElement>("[data-testid='player-readout']");
+  const objective = shell.querySelector<HTMLElement>("[data-testid='objective']");
+  let lastTime = performance.now();
   let disposed = false;
 
   void RAPIER.init().then(() => {
@@ -76,23 +106,80 @@ export function createNeonHarborApp(root: HTMLElement): NeonHarborApp {
     camera.updateProjectionMatrix();
   };
 
+  const syncScene = () => {
+    player.position.set(
+      state.player.position.x,
+      state.player.position.y,
+      state.player.position.z
+    );
+    const cameraDistance = 8;
+    const cameraHeight = 5;
+    camera.position.set(
+      state.player.position.x + Math.sin(state.camera.yaw) * cameraDistance,
+      state.player.position.y + cameraHeight,
+      state.player.position.z + Math.cos(state.camera.yaw) * cameraDistance
+    );
+    camera.lookAt(player.position);
+    shell.dataset.playerX = state.player.position.x.toFixed(2);
+    shell.dataset.playerZ = state.player.position.z.toFixed(2);
+    shell.dataset.cameraMode = state.camera.mode;
+    if (readout) {
+      readout.textContent = state.player.sprinting
+        ? "On foot - sprinting"
+        : state.player.speed > 0
+          ? "On foot - moving"
+          : "On foot";
+    }
+    if (objective) {
+      objective.textContent = "Walking Slice: reach the hotel marker";
+    }
+  };
+
+  const setKey = (event: KeyboardEvent, pressed: boolean) => {
+    if (event.code === "KeyW" || event.code === "ArrowUp") input.forward = pressed;
+    if (event.code === "KeyS" || event.code === "ArrowDown") input.backward = pressed;
+    if (event.code === "KeyA" || event.code === "ArrowLeft") input.left = pressed;
+    if (event.code === "KeyD" || event.code === "ArrowRight") input.right = pressed;
+    if (event.code === "ShiftLeft" || event.code === "ShiftRight") input.sprint = pressed;
+  };
+
+  const keyDown = (event: KeyboardEvent) => setKey(event, true);
+  const keyUp = (event: KeyboardEvent) => setKey(event, false);
+  const pointerMove = (event: PointerEvent) => {
+    if (event.buttons === 1) {
+      state = orbitCamera(state, event.movementX);
+    }
+  };
+
   const frame = () => {
     if (disposed) {
       return;
     }
+    const now = performance.now();
+    const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    state = updateOnFootPlayer(state, input, deltaSeconds);
+    syncScene();
     marker.rotation.y += 0.01;
     renderer?.render(scene, camera);
     window.requestAnimationFrame(frame);
   };
 
   resize();
+  syncScene();
   window.addEventListener("resize", resize);
+  window.addEventListener("keydown", keyDown);
+  window.addEventListener("keyup", keyUp);
+  canvas.addEventListener("pointermove", pointerMove);
   window.requestAnimationFrame(frame);
 
   return {
     dispose: () => {
       disposed = true;
       window.removeEventListener("resize", resize);
+      window.removeEventListener("keydown", keyDown);
+      window.removeEventListener("keyup", keyUp);
+      canvas.removeEventListener("pointermove", pointerMove);
       renderer?.dispose();
       shell.remove();
     }
