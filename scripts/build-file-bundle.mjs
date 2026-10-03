@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const distDir = path.resolve("dist");
@@ -8,8 +8,11 @@ await rm(fileDir, { force: true, recursive: true });
 await mkdir(fileDir, { recursive: true });
 await cp(distDir, fileDir, { recursive: true });
 
-const indexPath = path.join(fileDir, "index.html");
-const html = await readFile(indexPath, "utf8");
+const builtHtmlPath = await findFirstHtml(fileDir);
+if (!builtHtmlPath) {
+  throw new Error(`No HTML file found in ${fileDir}`);
+}
+const html = await readFile(builtHtmlPath, "utf8");
 const scriptMatches = [...html.matchAll(/<script[^>]+src="([^"]+)"[^>]*><\/script>/g)];
 const styleMatches = [...html.matchAll(/<link[^>]+href="([^"]+)"[^>]*>/g)];
 
@@ -31,4 +34,22 @@ for (const match of styleMatches) {
   directHtml = directHtml.replace(match[0], `<style>\n${source}\n</style>`);
 }
 
+const indexPath = path.join(fileDir, "index.html");
 await writeFile(indexPath, directHtml);
+await writeFile(path.join(distDir, "index.html"), directHtml);
+await writeFile(path.resolve("index.html"), directHtml);
+
+async function findFirstHtml(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const found = await findFirstHtml(entryPath);
+      if (found) return found;
+    }
+    if (entry.isFile() && entry.name.endsWith(".html")) {
+      return entryPath;
+    }
+  }
+  return null;
+}
