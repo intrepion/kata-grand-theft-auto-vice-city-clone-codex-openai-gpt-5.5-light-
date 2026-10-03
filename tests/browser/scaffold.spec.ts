@@ -57,3 +57,14 @@ test("claims, drives, and exits the Sunray vehicle", async ({ page }) => {
   await expect(shell).toHaveAttribute("data-camera-mode", "orbit");
   await expect(page.getByTestId("player-readout")).toContainText("On foot");
 });
+
+test("renders Vesper Key city life density targets", async ({ page }) => {
+  await page.goto("/");
+  const shell = page.locator(".game-shell");
+
+  await expect(shell).toHaveAttribute("data-traffic-count", "12");
+  await expect(shell).toHaveAttribute("data-pedestrian-count", "20");
+  await expect(page.getByTestId("city-readout")).toContainText(
+    "12 traffic / 20 pedestrians"
+  );
+});

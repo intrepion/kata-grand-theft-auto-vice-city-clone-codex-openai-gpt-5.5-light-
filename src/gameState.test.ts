@@ -5,6 +5,8 @@ import {
   createInitialState,
   exitVehicle,
   orbitCamera,
+  populateCityLife,
+  updateCityLife,
   updateOnFootPlayer,
   updateVehicleDriving
 } from "./gameState";
@@ -43,6 +45,31 @@ describe("on-foot player control", () => {
     const next = orbitCamera(state, 25);
 
     expect(next.camera.yaw).toBeLessThan(state.camera.yaw);
+  });
+});
+
+describe("Vesper Key city life", () => {
+  it("populates the MVP traffic and pedestrian density targets", () => {
+    const state = populateCityLife(createInitialState());
+
+    expect(state.vehicles.filter((vehicle) => vehicle.kind === "traffic")).toHaveLength(
+      12
+    );
+    expect(state.pedestrians).toHaveLength(20);
+  });
+
+  it("moves traffic and pedestrian loops", () => {
+    const state = populateCityLife(createInitialState());
+    const firstCarZ = state.vehicles.find((vehicle) => vehicle.kind === "traffic")
+      ?.position.z;
+    const firstPedZ = state.pedestrians[0]?.position.z;
+
+    const next = updateCityLife(state, 1);
+
+    expect(
+      next.vehicles.find((vehicle) => vehicle.kind === "traffic")?.position.z
+    ).not.toBe(firstCarZ);
+    expect(next.pedestrians[0]?.position.z).not.toBe(firstPedZ);
   });
 });
 

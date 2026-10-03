@@ -55,6 +55,7 @@ body {
 .objective,
 .player-readout,
 .vehicle-readout,
+.city-readout,
 .boot-card {
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 6px;
@@ -78,7 +79,8 @@ body {
 }
 
 .player-readout,
-.vehicle-readout {
+.vehicle-readout,
+.city-readout {
   padding: 10px 12px;
   color: #c6fff5;
 }

@@ -18,6 +18,14 @@ export interface VehicleState {
   speed: number;
   damage: number;
   occupied: boolean;
+  kind: "player" | "traffic" | "police";
+}
+
+export interface PedestrianState {
+  id: string;
+  position: Vec3;
+  routePhase: number;
+  panicked: boolean;
 }
 
 export interface CameraState {
@@ -29,6 +37,7 @@ export interface NeonHarborState {
   player: PlayerState;
   camera: CameraState;
   vehicles: VehicleState[];
+  pedestrians: PedestrianState[];
 }
 
 export interface InputState {
@@ -58,10 +67,58 @@ export function createInitialState(): NeonHarborState {
         heading: Math.PI * 0.2,
         speed: 0,
         damage: 0,
-        occupied: false
+        occupied: false,
+        kind: "player"
       }
-    ]
+    ],
+    pedestrians: createPedestrians()
   };
+}
+
+export function populateCityLife(state: NeonHarborState): NeonHarborState {
+  const next = structuredClone(state);
+  if (next.vehicles.some((vehicle) => vehicle.kind === "traffic")) {
+    return next;
+  }
+  for (let index = 0; index < 12; index += 1) {
+    next.vehicles.push({
+      id: `traffic-${index + 1}`,
+      position: {
+        x: index % 2 === 0 ? -5.4 : 5.4,
+        y: 0.35,
+        z: -6 + index
+      },
+      heading: index % 2 === 0 ? 0 : Math.PI,
+      speed: 2.2 + (index % 3) * 0.35,
+      damage: 0,
+      occupied: false,
+      kind: "traffic"
+    });
+  }
+  return next;
+}
+
+export function updateCityLife(
+  state: NeonHarborState,
+  deltaSeconds: number
+): NeonHarborState {
+  const next = populateCityLife(state);
+  for (const vehicle of next.vehicles) {
+    if (vehicle.kind !== "traffic") {
+      continue;
+    }
+    vehicle.position.z += Math.cos(vehicle.heading) * vehicle.speed * deltaSeconds;
+    if (vehicle.position.z > 7) vehicle.position.z = -7;
+    if (vehicle.position.z < -7) vehicle.position.z = 7;
+  }
+  for (const pedestrian of next.pedestrians) {
+    pedestrian.routePhase = (pedestrian.routePhase + deltaSeconds * 0.18) % 1;
+    const block = Number(pedestrian.id.split("-")[1]) - 1;
+    const side = block % 2 === 0 ? -1 : 1;
+    pedestrian.position.x = side * (2.8 + (block % 5) * 0.42);
+    pedestrian.position.z = -6 + pedestrian.routePhase * 12;
+  }
+  return next;
 }
 
 export function updateOnFootPlayer(
@@ -198,6 +255,19 @@ export function orbitCamera(
 
 export function activeVehicle(state: NeonHarborState): VehicleState | undefined {
   return state.vehicles.find((vehicle) => vehicle.id === state.player.inVehicleId);
+}
+
+function createPedestrians(): PedestrianState[] {
+  return Array.from({ length: 20 }, (_, index) => ({
+    id: `pedestrian-${index + 1}`,
+    position: {
+      x: index % 2 === 0 ? -3.2 : 3.2,
+      y: 0.55,
+      z: -6 + (index % 10) * 1.2
+    },
+    routePhase: (index % 10) / 10,
+    panicked: false
+  }));
 }
 
 function distance2d(a: Vec3, b: Vec3): number {
