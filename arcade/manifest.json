@@ -1,6 +1,43 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gameId": "kata-grand-theft-auto-vice-city-clone-codex-openai-gpt-5.5-light-",
   "playUrl": "https://intrepion.github.io/kata-grand-theft-auto-vice-city-clone-codex-openai-gpt-5.5-light-/",
-  "screenshots": []
+  "screenshots": [
+    {
+      "path": "arcade/screenshots/ci-20261102-01.jpg",
+      "sha256": "92894f1541ca0eac902568a6aa2db093cb5e056895109208b70367d62889c339",
+      "alt": "Neon Harbor gameplay, view 1",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-01.png",
+        "sourceSha256": "2507a8e8ee337c67e29f3181bcb0c503aca474f1cbc9a7829c4c8e62d920816c",
+        "captureCommit": "156d036a5114eafeacfe865e6b3be91e4b771a0b",
+        "workflowRunId": "41447036854",
+        "inputHashes": {
+          "index.html": "040bc072f4c65a2f16623e4a9472f89664c64f8d7d6e26daeeeda4af57cc0c4a"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "f63b1b816179fc02b7afe77958f5f68a8d884c51bca8886ead2134e8265d01f2"
+      }
+    },
+    {
+      "path": "arcade/screenshots/ci-20261102-02.jpg",
+      "sha256": "4c2c0f410c08ef13220ca5546c225ac10b2ea0b4fdabc90494959b4d511de3ac",
+      "alt": "Neon Harbor gameplay, view 2",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-02.png",
+        "sourceSha256": "1f2ca0289a710ed0ea2f327ba9e112f9bdee075fa0cec89ccea14b2abffd4cd9",
+        "captureCommit": "156d036a5114eafeacfe865e6b3be91e4b771a0b",
+        "workflowRunId": "41447036854",
+        "inputHashes": {
+          "index.html": "040bc072f4c65a2f16623e4a9472f89664c64f8d7d6e26daeeeda4af57cc0c4a"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "f63b1b816179fc02b7afe77958f5f68a8d884c51bca8886ead2134e8265d01f2"
+      }
+    }
+  ]
 }

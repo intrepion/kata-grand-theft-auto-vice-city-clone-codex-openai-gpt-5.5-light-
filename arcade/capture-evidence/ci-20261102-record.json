@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "workflowCommit": "ad1f64f20b0db8d8dbc2be5f270cd55c2bb4b244",
+  "sourceCommit": "156d036a5114eafeacfe865e6b3be91e4b771a0b",
+  "runId": "41447036854",
+  "url": "http://127.0.0.1:4293/",
+  "inputs": {
+    "index.html": "040bc072f4c65a2f16623e4a9472f89664c64f8d7d6e26daeeeda4af57cc0c4a"
+  },
+  "browser": "153.0.8010.12",
+  "viewport": {
+    "width": 1280,
+    "height": 1000
+  },
+  "screenshots": [
+    "harbor-01.png",
+    "harbor-02.png"
+  ]
+}
